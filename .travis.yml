@@ -3,11 +3,16 @@ dist: trusty
 sudo: false
 compiler: gcc
 language: cpp
+
 env:
   global:
     - SCONSFLAGS="-j2"
     - ANALYZER="."
     - LD_LIBRARY_PATH=$ANALYZER:$LD_LIBRARY_PATH
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+    - secure: "CYBDBKDsPAV05SA9C8zkkjcbXXQ2lrzKFQfJTclwM0dfVTG5KkEnE/eBEKZshsq+S/FORxkaDs/3bpntvkmrfR7ftx9/5aEbpRFqBfSzUlfOKDYsw+ZxcnIOtR8Jcnk/JEn5Ln+B5CjscS4nypuU9WbJyI1TusWBDpPMK/Yn6sAF9NenqdD+FqeLHRQzc7Xwy9IBEtjWACdci4SbXnpdfQA9l1wDmOspIiJk4tIdOJFDIhwDzARX+1d2usC4Wa8gce5a/FVeP2S/UWAWlcgWMiFOhidryPgVV3Mc3A+cEebjiMYHhcpALiUed+rb2d7Ek01P6w+01irIKMqoPbbt9Wq9RbGm7Rbq2owhR//j3BbWqrgPBYHcgXmWojastP7B4txFLp3BLuTP36+hderOLBRuEuz6m26tnmRb/IyB5DpYi0jBYIgy4Uz4J+QXHvR5Pd1f2CgSRDxZAcdb1KZ9ooQ3IR/hsVasNOconDw8ipwfY5SNmtEOT+TfYvkXQ/Si7oNaaDvwpKMNTJOux8b9g+TN9CxBpEnNy7I3GzvjNJrgmtDAFgUpIeJ5o6uPiaeRq3QJTCeqDAUVtoaL9PxVGqyKOZJVPucqeARb8BvkyaPw8TO9HDecfVql59CxvsApyxjDMRZKjd0EAhoT0+21vuRQF/cD0WLp1LgnOLzLbRg="
+
 install:
   - wget https://root.cern.ch/download/root_v6.12.06.Linux-ubuntu14-x86_64-gcc4.8.tar.gz -O /tmp/root.tar.gz
   - tar -xzf /tmp/root.tar.gz
@@ -21,9 +26,20 @@ after_success:
   - $ANALYZER/apps/analyzer --version
   - $ANALYZER/apps/analyzer -q
 branches:
-  only: master
+  only:
+    - master
+    - coverity_scan
 notifications:
   email:
     recipients: ole@jlab.org
     on_success: always
     on_failure: always
+
+addons:
+  coverity_scan:
+    project:
+      name: "JeffersonLab/analyzer"
+      description: "Hall A Data Analysis Framework"
+    notification_email: ole@jlab.org
+    build_command: scons
+    branch_pattern: coverity_scan
