@@ -50,8 +50,6 @@
 /////////////////////////////////////////////////////////////////////
 
 #include "Fadc250Module.h"
-#include "PipeliningModule.h"
-#include "THaEvData.h"
 #include "THaSlotData.h"
 #include "TMath.h"
 
@@ -347,13 +345,13 @@ namespace Decoder {
 	return -1;
       }
       else {
-	return fPulseData[chan].pedestal[ievent];
 #ifdef WITH_DEBUG
 	if (fDebugFile != 0)
 	  *fDebugFile << "Fadc250Module::GetPulsePedestalData channel "
 		      << chan << ", event " << ievent << " = "
 		      <<  fPulseData[chan].pedestal[ievent] << endl;
 #endif
+        return fPulseData[chan].pedestal[ievent];
       }
     }
     if (nevent != 1) {
@@ -623,13 +621,13 @@ namespace Decoder {
 	return -1;
       }
       else  {
-	return fPulseData[chan].samples.size();
 #ifdef WITH_DEBUG
 	if (fDebugFile != 0)
 	  *fDebugFile << "Fadc250Module::GetNumFadcSamples channel "
 		      << chan << ", event " << ievent << " = "
 		      <<  fPulseData[chan].samples.size() << endl;
 #endif
+        return fPulseData[chan].samples.size();
       }
     }
     else {
@@ -828,7 +826,7 @@ namespace Decoder {
 #endif
 	}
 	else {
-	  if (data_type_id != 0) break;                      // Ensure this is a data continuation word
+          assert( data_type_id == 0 );                       // Ensure this is a data continuation word
 	  Bool_t invalid_1 = (data >> 29) & 0x1;             // Check if sample x is invalid
 	  Bool_t invalid_2 = (data >> 13) & 0x1;             // Check if sample x+1 is invalid
 	  uint32_t sample_1 = 0;                             // ADC sample x (includes overflow bit)
@@ -880,7 +878,7 @@ namespace Decoder {
 #endif
 	}
 	else {
-	  if (data_type_id != 0) break;                      // Ensure this is a data continuation word
+          assert( data_type_id == 0 );                       // Ensure this is a data continuation word
 	  Bool_t invalid_1 = (data >> 29) & 0x1;             // Check if sample x is invalid
 	  Bool_t invalid_2 = (data >> 13) & 0x1;             // Check if sample x+1 is invalid
 	  uint32_t sample_1 = 0;                             // ADC sample x (includes overflow bit)

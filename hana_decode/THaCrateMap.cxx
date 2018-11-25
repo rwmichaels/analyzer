@@ -22,15 +22,37 @@
 
 #include "TDatime.h"
 #include "TError.h"
+#include "TSystem.h"
 
 #include <cstdio>
-#include <cstring>  // for strerror_r
 #include <errno.h>  // for errno
 #include <string>
 #include <iomanip>
 #include <sstream>
+#include <unistd.h>
+#include <cstring>  // for strerror_r
+
+// This is a well-known problem with strerror_r
+#if defined(__linux__) && (defined(_GNU_SOURCE) || !(_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE > 600))
+# define GNU_STRERROR_R
+#endif
 
 using namespace std;
+
+static string StrError()
+{
+  // Return description of current errno as a std::string
+  const size_t BUFLEN = 128;
+  char buf[BUFLEN];
+
+#ifdef GNU_STRERROR_R
+  string ret = strerror_r(errno, buf, BUFLEN);
+#else
+  strerror_r(errno, buf, BUFLEN);
+  string ret = buf;
+#endif
+  return ret;
+}
 
 namespace Decoder {
 
@@ -190,25 +212,21 @@ int THaCrateMap::init( FILE* fi, const TString& fname )
   // parsed by init(TString).
 
   const char* const here = "THaCrateMap::init";
-  const size_t BUFLEN = 128;
-  char buf[BUFLEN];
 
   if ( !fi ) {
-    strerror_r(errno, buf, BUFLEN);
     ::Error( here, "Error opening crate map database file %s: %s",
-        fname.Data(), buf );
+        fname.Data(), StrError().c_str() );
     return CM_ERR;
   }
   // Build the string to parse
   TString db;
   int ch;
-  while ( (ch = fgetc(fi)) != EOF ) {
+  while( (ch = fgetc(fi)) != EOF ) {
     db += static_cast<char>(ch);
   }
   if( ferror(fi) ) {
-    strerror_r(errno, buf, BUFLEN);
     ::Error( here, "Error reading crate map database file %s: %s",
-        fname.Data(), buf );
+        fname.Data(), StrError().c_str() );
     fclose(fi);
     return CM_ERR;
   }
@@ -220,22 +238,53 @@ int THaCrateMap::init( FILE* fi, const TString& fname )
 
 int THaCrateMap::init(ULong64_t /*tloc*/)
 {
-  // Initialize the crate map from the database using given Unix time stamp
-  // tloc
+  // Initialize the crate map from the database.
+  //
+  // If a time-dependent or run-number indexed database is available,
+  // (in derived classes), use the given 'tloc' argument as the index.
+  //
   // If the database file name (fDBfileName) contains any slashes, it is
   // assumed to be the actual file path.
   //
   // If opening fDBfileName fails, no slash is present in the name, and the
   // name does not already have the format "db_*.dat", the routine will also
   // try to open "db_<fDBfileName>.dat".
+  //
+  // If the file is still not found, but DB_DIR is defined in the environment,
+  // repeat the search in $DB_DIR.
 
   TString fname(fDBfileName);
 
   FILE* fi = fopen(fname,"r");
-  if( !fi && fname.Index('/') == kNPOS &&
-      !fname.BeginsWith("db_") && !fname.EndsWith(".dat") ) {
-    fname.Prepend("db_").Append(".dat");
-    fi = fopen(fname,"r");
+  if( !fi ) {
+    TString dbfname;
+    Ssiz_t pos = fname.Index('/');
+    bool no_slash = (pos == kNPOS);
+    bool no_abspath = (pos != 0);
+    if( no_slash && !fname.BeginsWith("db_") && !fname.EndsWith(".dat") ) {
+      dbfname = "db_" + fname +".dat";
+      fi = fopen(dbfname,"r");
+    }
+    if( !fi && no_abspath ) {
+      const char* db_dir = gSystem->Getenv("DB_DIR");
+      if( db_dir ) {
+        long int path_max = pathconf(".", _PC_PATH_MAX);
+        if( path_max <= 0 )
+          path_max = 1024;
+        if( strlen(db_dir) <= static_cast<size_t>(path_max) ) {
+          TString dbdir(db_dir);
+          if( !dbdir.EndsWith("/") )
+            dbdir.Append('/');
+          fname.Prepend(dbdir);
+          fi = fopen(fname,"r");
+          if( !fi && !dbfname.IsNull() ) {
+            dbfname.Prepend(dbdir);
+            fi = fopen(dbfname,"r");
+          }
+          // if still !fi here, init(fi,...) below will report error
+        }
+      }
+    }
   }
   return init(fi, fname);
 }
@@ -311,7 +360,7 @@ int THaCrateMap::init(TString the_map)
     ssiz_t l = line.find_first_of("!#");    // drop comments
     if (l != string::npos ) line.erase(l);
 
-    if ( line.length() <= 0 ) continue;
+    if ( line.empty() ) continue;
 
     if ( line.find_first_not_of(" \t") == string::npos ) continue; // nothing useful
 
