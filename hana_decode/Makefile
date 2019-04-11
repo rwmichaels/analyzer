@@ -174,7 +174,7 @@ SRC = THaUsrstrutils.cxx THaCrateMap.cxx THaCodaData.cxx \
       Caen775Module.cxx Caen792Module.cxx
 
 ifndef STANDALONE
-  SRC += SimDecoder.cxx
+#  SRC += SimDecoder.cxx
 endif
 
 PROGS = tstoo tstfadc tstfadcblk tstfadcblk tstf1tdc tst1190 tstio tdecpr tdecex prfact epicsd
