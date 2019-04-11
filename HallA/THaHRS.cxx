@@ -99,7 +99,7 @@ THaAnalysisObject::EStatus THaHRS::Init( const TDatime& run_time )
     THaDetector* pdet = static_cast<THaDetector*>( fDetectors->FindObject("vdc") );
     if( !pdet ) {
       AddDetector( new THaScintillator("s2", "S2 scintillator"), true, true );
-      AddDetector( new THaScintillator("s1", "S1 scintillator"), true, true );
+      //      AddDetector( new THaScintillator("s1", "S1 scintillator"), true, true );
 #ifndef NDEBUG
       Int_t ret =
 #endif
