@@ -7,8 +7,13 @@
 //
 //////////////////////////////////////////////////////////////////////////
 
+#define ILEFT   1
+#define IRIGHT  2
+
 #include "THaApparatus.h"
 #include "TBits.h"
+#include "TString.h"
+#include "THaVar.h"
 //#include "TH1.h"
 //#include "TH2.h"
 #include <vector>
@@ -92,33 +97,51 @@ private:
    Int_t  *trigcnt;
 
    UInt_t evtypebits, evtype;
-   Int_t modern_times;
+   Int_t WindowSize;   // this can be at most 500, per design of FADC
 
-   // PREx detectors
-   Double_t loQadcL, loQadcR, upQadcL, upQadcR; // ADC Ahmed.
-   Double_t loQtdcL, loQtdcR, upQtdcL, upQtdcR; // TDC Ahmed.
-   Double_t atQadcL, atQadcR, atQtdcL, atQtdcR; // ADC, TDC Ahmed.
-   Double_t loSadcL, loSadcR, loStdcL, loStdcR; // ADC, TDC Ahmed.
-   Double_t upSadcL, upSadcR, upStdcL, upStdcR; // ADC, TDC Ahmed.
- 
-   // S0 and S2 scintillator detectors
-   Double_t s0La, s0Lb, s0Ra, s0Rb;
-   Double_t s2La, s2Lb, s2Ra, s2Rb;
+   std::ofstream *fDebugFile;  // debug output
 
+   // Global variable definitions for this class
+   vector<string> GloVars;
+
+   Int_t Nvars=0;
+   Double_t *dvars;
+   
    // Q^2 on left (L) and right (R) HRS.  (can also use Kinematics class)
    Double_t q2L,q2R;
 
    std::vector < PdataLoc* > fCrateLoc;   // Raw Data locations by crate, slot, channel
    std::vector < PdataLoc* > fWordLoc;    // Raw Data locations relative to header word
+   std::vector<PdataLoc*> fDataLocs;  // these are all the WordLocs and CrateLocs combined
 
+   Int_t IptrFadcL, IptrFadcR;   // pointer to fCrateLoc where FADC is
+
+   // Quartz FADC data arrays -- for raw mode
+   Double_t *QLfadclo, *QLfadcup;  // L-HRS lower, upper 
+   Double_t *QRfadclo, *QRfadcup;  // R-HRS lower, upper 
+   // A_T detector FADC data arrays -- for raw mode
+   Double_t *ATLfadc1, *ATLfadc2;  // L-HRS detectors 1 and 2
+   Double_t *ATRfadc1, *ATRfadc2;  // R-HRS detectors 1 and 2
+   // Quartz FADC data -- for pulse integral mode ("I")
+   Double_t QLIfadclo,  QLIfadcup;    // L-HRS lower, upper 
+   Double_t QRIfadclo,  QRIfadcup;    // R-HRS lower, upper 
+   Double_t QLIftimelo,  QLIftimeup;  // L-HRS time over thr, L-HRS lower, upper
+   Double_t QRIftimelo,  QRIftimeup;  // R-HRS time over thr, L-HRS lower, upper
+   // A_T detector FADC data -- for pulse integral mode ("I")
+   Double_t ATLIfadc1,  ATLIfadc2;    // integrated adc L-HRS AT#1 & 2
+   Double_t ATRIfadc1,  ATRIfadc2;    // integrated adc R-HRS AT#1 & 2
+   Double_t ATLIftime1, ATLIftime2;   // time over thr, L-HRS AT#1 & 2
+   Double_t ATRIftime1, ATRIftime2;   // time over thr, R-HRS AT#1 & 2
+   
    virtual void Clear( Option_t* opt="" );
    virtual void Print( Option_t* opt="" ) const;
    std::vector<TH1* > hist;
    Int_t DefaultMap();
-   void  PrintMap(Int_t flag=0);
+   void  PrintMap();
    Int_t DoBpm();
    Int_t DoKine();
    void TrigBits(UInt_t ibit, PdataLoc *dataloc);
+   Int_t   DecodeFadc(Int_t iarm, Int_t iptr, const THaEvData& );
    static std::vector<std::string> vsplit(const std::string& s);
    Int_t SetupParData( const TDatime* runTime = NULL, EMode mode = kDefine );
    virtual void BookHist(); 
@@ -126,7 +149,6 @@ private:
    static UInt_t header_str_to_base16(const char* hdr);
 
    static const int PARDATA_VERBOSE = 1;
-   static const int PARDATA_PRINT = 1;
 
    ClassDef(ParityData,0)  
 };
