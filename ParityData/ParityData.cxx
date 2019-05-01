@@ -324,7 +324,7 @@ Int_t ParityData::Decode(const THaEvData& evdata)
 {
 
   Int_t i;
-  Int_t ldebug=1;
+  Int_t ldebug=0;
 
   Clear();
 
@@ -547,7 +547,6 @@ Int_t ParityData::DecodeFadc(Int_t iarm, Int_t iptr, const THaEvData& evdata) {
    if (fadc) {
 
      fadc_mode = fadc->GetFadcMode();
-     fadc->PutLastEvent(evdata.GetEvNum());
      num_fadc_events = fadc->GetNumFadcEvents(0);
      raw_mode  = ((fadc_mode == 1) || (fadc_mode == 8) || (fadc_mode == 10));
      Int_t numSamp = fadc->GetNumEvents(kSampleADC,0);
